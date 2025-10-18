@@ -11,14 +11,6 @@ Um **planejador de viagens inteligente** que utiliza IA para gerar roteiros pers
 - **Cálculo inteligente de custos** por perfil (econômico, equilibrado, premium).
 - **Sugestões contextualizadas** baseadas no tipo de viagem e orçamento.
 
-### Frontend Ultra-Moderno e Dinâmico
-- **Design futurista e responsivo** que se adapta perfeitamente a qualquer dispositivo (desktop, tablet, mobile).
-- **Splash screen animada** com o logo profissional do IViagem, garantindo uma entrada de impacto.
-- **Interface intuitiva e dinâmica** com animações suaves, transições elegantes e efeitos visuais modernos (como glassmorphism e shimmer).
-- **Exibição dinâmica de resultados** com cards interativos e animações de entrada em cascata.
-- **Itinerário dia a dia** detalhado com narrativas envolventes geradas por IA.
-- **Funcionalidade de Exportação para PDF estilizada e bonita**, permitindo salvar o roteiro completo com um layout profissional e visualmente atraente para fácil compartilhamento e consulta offline.
-
 ## 📋 Requisitos
 
 ### Backend
