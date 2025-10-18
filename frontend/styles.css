@@ -1,0 +1,111 @@
+:root {
+  --bg:#0f1115; --panel:#121724; --panel-2:#161c2d; --text:#e8ecf4; --muted:#a1acc7;
+  --accent:#7aa2f7; --ok:#58d68d; --warn:#f1c40f; --bad:#e74c3c; --line:#242b40;
+}
+:root.light {
+  --bg:#f6f8fc; --panel:#ffffff; --panel-2:#f4f6fb; --text:#111422; --muted:#62708f;
+  --accent:#2b67f6; --ok:#1f9d5c; --warn:#b8860b; --bad:#c0392b; --line:#e6e9f2;
+}
+*{ box-sizing:border-box }
+html,body{ height:100% }
+body{
+  margin:0; font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,sans-serif;
+  color:var(--text); background:var(--bg);
+}
+
+.topbar{
+  position:sticky; top:0; z-index:50; backdrop-filter:saturate(180%) blur(6px);
+  background:linear-gradient(180deg, rgba(0,0,0,.35), rgba(0,0,0,0));
+  border-bottom:1px solid var(--line); padding:14px 16px;
+  display:flex; align-items:center; justify-content:space-between;
+}
+.brand{ display:flex; gap:12px; align-items:center }
+.logo{
+  width:36px; height:36px; border-radius:10px; background:linear-gradient(135deg,#1f2a44,#2f3d67);
+  display:grid; place-items:center; color:#cfe0ff; font-weight:800;
+  border:1px solid #3a4973; box-shadow:0 6px 20px rgba(0,0,0,.3) inset;
+}
+.titles h1{ margin:0; font-size:18px }
+.titles p{ margin:2px 0 0 0; font-size:12px; color:var(--muted) }
+.actions{ display:flex; gap:8px; align-items:center }
+.actions .gh{ color:var(--muted); text-decoration:none; font-size:12px }
+.actions button{ background:var(--panel-2); color:var(--text); border:1px solid var(--line); padding:8px 10px; border-radius:10px; cursor:pointer }
+
+.container{ max-width:1040px; margin:18px auto; padding:0 16px }
+.card{
+  background:var(--panel); border:1px solid var(--line); border-radius:16px; padding:18px; margin-bottom:18px;
+  box-shadow:0 8px 30px rgba(0,0,0,.3);
+}
+h2{ margin:0 0 12px 0; font-size:18px }
+.grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:12px }
+label{ display:flex; flex-direction:column; gap:6px; font-size:13px; color:var(--muted) }
+input, select{
+  padding:10px 12px; border-radius:12px; border:1px solid var(--line); background:var(--panel-2); color:var(--text); outline:none;
+}
+.toolbar{ display:flex; gap:10px; align-items:center }
+button{
+  padding:10px 14px; border-radius:12px; border:1px solid var(--line); background:var(--panel-2); color:var(--text);
+  cursor:pointer; font-weight:600;
+}
+button:hover{ border-color:var(--accent) }
+.loading{ color:var(--muted) }
+.hidden{ display:none }
+
+.docbar{ display:flex; justify-content:space-between; align-items:center; gap:10px; margin-bottom:10px }
+.doc-actions{ display:flex; gap:8px }
+/* TOC não sobrepõe mais o conteúdo (desliga sticky) */
+.toc{
+  position: static;
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 12px;
+  margin-bottom: 12px;
+  z-index: 0; /* garante que fique atrás do documento */
+}
+
+/* Evita que o título role para baixo do topo e fique “escondido” sob o header */
+#planHtml h2, #planHtml h3 {
+  scroll-margin-top: 90px;
+}
+
+/* Garante que o documento fique “acima” de qualquer overlay residual */
+.doc{
+  position: relative;
+  z-index: 1;
+}
+
+/* Em telas pequenas, o TOC vira um bloco recolhível (opcional) */
+@media (max-width: 860px){
+  .toc{ display: none; }
+}
+
+.toc a{ display:block; color:var(--muted); text-decoration:none; padding:6px 8px; border-radius:8px; font-size:13px }
+.toc a:hover{ background:rgba(122,162,247,.1); color:var(--text) }
+
+.doc{
+  background:var(--panel-2); border:1px solid var(--line); border-radius:12px; padding:18px;
+}
+.doc h2{
+  font-size:20px; border-bottom:1px dashed var(--line); padding-bottom:6px; margin:12px 0 8px 0;
+}
+.doc h3{ font-size:16px; margin:10px 0 6px 0; color:var(--text) }
+.doc p, .doc li{ color:var(--text); font-size:14px; line-height:1.65 }
+.doc table{ width:100%; border-collapse:collapse; margin:8px 0; font-size:13px }
+.doc th, .doc td{ border-bottom:1px solid var(--line); padding:8px; text-align:left }
+
+.chips{ display:flex; flex-wrap:wrap; gap:8px }
+.chip{ padding:6px 8px; border-radius:999px; border:1px solid var(--line); background:var(--panel-2); font-size:12px; color:var(--muted) }
+.chip.ok{ color:#d7ffe7; border-color:#2c7a51; background:rgba(88,214,141,.12) }
+.chip.warn{ color:#fff3c7; border-color:#9a7b00; background:rgba(241,196,15,.12) }
+.chip.bad{ color:#ffd0d0; border-color:#9b2f2f; background:rgba(231,76,60,.12) }
+
+.debug summary{ cursor:pointer; color:var(--muted) }
+#rawJson{ white-space:pre-wrap; background:var(--panel); border:1px solid var(--line); padding:10px; border-radius:10px }
+
+.foot{ text-align:center; color:var(--muted); font-size:12px; padding:18px 0 }
+@media print {
+  .topbar, .toolbar, .doc-actions, .toc, .debug { display:none !important }
+  body { background:#fff; color:#000 }
+  .card { border:none; box-shadow:none }
+}

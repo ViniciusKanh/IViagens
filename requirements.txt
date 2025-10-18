@@ -1,0 +1,11 @@
+crewai[tools]==0.120.1
+langchain-tavily>=0.1.1
+duckduckgo-search>=6.2.13
+weasyprint>=62.3
+markdown2>=2.5.1
+streamlit>=1.38.0
+python-dotenv>=1.0.1
+fastapi==0.115.0
+uvicorn[standard]==0.30.6
+pydantic==2.9.2
+python-dateutil==2.9.0.post0

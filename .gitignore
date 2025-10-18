@@ -1,0 +1,110 @@
+# =========================
+# SISTEMA / EDITORES
+# =========================
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*.tmp
+*.temp
+*.orig
+.idea/
+.vscode/
+.history/
+.cache/
+
+# =========================
+# LOGS
+# =========================
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# =========================
+# FRONTEND (Node/JS bundlers)
+# =========================
+node_modules/
+dist/
+build/
+out/
+.tmp/
+temp/
+coverage/
+*.tsbuildinfo
+
+# Vite / Rollup / Parcel / Turborepo
+.vite/
+node_modules/.vite/
+.parcel-cache/
+.turbo/
+
+# Next / Nuxt / Svelte / Angular (por segurança)
+.next/
+.nuxt/
+.svelte-kit/
+.angular/
+.docusaurus/
+.vercel/
+
+# =========================
+# BACKEND PYTHON (FastAPI, etc.)
+# =========================
+__pycache__/
+*.py[cod]
+*.so
+*.pyd
+*.pyo
+*.egg-info/
+.eggs/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.pyre/
+.dmypy.json
+*.coverage
+.coverage.*
+htmlcov/
+.tox/
+.cache/pip
+pip-wheel-metadata/
+.pytype/
+
+# Virtual envs
+venv/
+.venv/
+env/
+.env/
+ENV/
+.python-version
+
+# DBs locais / artefatos
+*.sqlite
+*.sqlite3
+instance/
+db.sqlite3
+
+# =========================
+# VARIÁVEIS DE AMBIENTE (NUNCA COMITAR)
+# =========================
+.env
+.env.*
+!.env.example
+.env.local
+.env.*.local
+
+# =========================
+# ASSETS GERADOS / EXPORTS
+# =========================
+exports/
+*.pdf
+*.zip
+
+# =========================
+# DOCS (gerados)
+# =========================
+_site/
+docs/.vuepress/dist/
