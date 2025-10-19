@@ -1,0 +1,1336 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>IViagem – Planejador de Viagens Inteligente</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    :root {
+      --primary-green: #10b981;
+      --primary-blue: #0ea5e9;
+      --primary-dark: #0f172a;
+      --primary-white: #f8fafc;
+      --accent-green: #34d399;
+      --accent-blue: #38bdf8;
+      --neon-purple: #a855f7;
+      --neon-cyan: #06b6d4;
+      --text-primary: #f8fafc;
+      --text-secondary: #cbd5e1;
+      --border-color: #1e293b;
+      --card-bg: #1a2332;
+      --radius: 16px;
+      --radius-lg: 24px;
+    }
+
+    html, body {
+      height: 100%;
+      width: 100%;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      background: linear-gradient(135deg, #0f172a 0%, #1a2f4a 50%, #0f172a 100%);
+      color: var(--text-primary);
+      overflow-x: hidden;
+      background-size: 400% 400%;
+      animation: gradientBackground 15s ease infinite;
+    }
+
+    @keyframes gradientBackground {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+
+    /* ========================
+       SPLASH SCREEN
+       ======================== */
+    .splash-screen {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(135deg, #0a5f6f 0%, #0f172a 50%, #1a2f4a 100%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+      opacity: 1;
+      animation: splashFadeOut 0.8s ease-in-out 2.5s forwards;
+    }
+
+    .splash-content {
+      text-align: center;
+      animation: splashBounceIn 0.8s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    }
+
+    .splash-logo {
+      width: 120px;
+      height: 120px;
+      margin-bottom: 24px;
+      animation: splashRotate 2s ease-in-out;
+    }
+
+    .splash-logo img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+
+    .splash-title {
+      font-size: 32px;
+      font-weight: 700;
+      color: var(--primary-white);
+      margin-bottom: 12px;
+      animation: splashSlideUp 0.8s ease-out 0.2s backwards;
+    }
+
+    .splash-subtitle {
+      font-size: 16px;
+      color: var(--accent-green);
+      font-weight: 500;
+      animation: splashSlideUp 0.8s ease-out 0.4s backwards;
+    }
+
+    @keyframes splashFadeOut {
+      0% { opacity: 1; visibility: visible; }
+      100% { opacity: 0; visibility: hidden; }
+    }
+
+    @keyframes splashBounceIn {
+      0% { transform: scale(0.3); opacity: 0; }
+      50% { opacity: 1; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+
+    @keyframes splashRotate {
+      0% { transform: rotate(0deg) scale(0.8); }
+      50% { transform: rotate(180deg) scale(1); }
+      100% { transform: rotate(360deg) scale(1); }
+    }
+
+    @keyframes splashSlideUp {
+      0% { transform: translateY(30px); opacity: 0; }
+      100% { transform: translateY(0); opacity: 1; }
+    }
+
+    /* ========================
+       MAIN LAYOUT
+       ======================== */
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 32px 20px;
+      min-height: 100vh;
+    }
+
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 40px;
+      gap: 20px;
+      flex-wrap: wrap;
+      animation: slideDown 0.6s ease-out;
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .logo-small {
+      width: 48px;
+      height: 48px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, var(--neon-cyan), var(--neon-purple));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      font-weight: 700;
+      color: var(--primary-white);
+      box-shadow: 0 8px 24px rgba(6, 182, 212, 0.4), inset 0 0 20px rgba(168, 85, 247, 0.2);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .logo-small::before {
+      content: "";
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: linear-gradient(45deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+      animation: shimmer 3s infinite;
+    }
+
+    @keyframes shimmer {
+      0% { transform: translate(-100%, -100%) rotate(45deg); }
+      100% { transform: translate(100%, 100%) rotate(45deg); }
+    }
+
+    .title {
+      font-size: clamp(24px, 4vw, 32px);
+      font-weight: 700;
+      background: linear-gradient(135deg, var(--neon-cyan), var(--accent-blue), var(--neon-purple));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      animation: titleGlow 3s ease-in-out infinite;
+    }
+
+    @keyframes titleGlow {
+      0%, 100% { filter: drop-shadow(0 0 10px rgba(6, 182, 212, 0.5)); }
+      50% { filter: drop-shadow(0 0 20px rgba(168, 85, 247, 0.5)); }
+    }
+
+    .header-right {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .status-badge {
+      padding: 8px 16px;
+      background: rgba(6, 182, 212, 0.1);
+      border: 1px solid var(--neon-cyan);
+      border-radius: 999px;
+      font-size: 12px;
+      color: var(--neon-cyan);
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      box-shadow: 0 0 15px rgba(6, 182, 212, 0.2);
+      animation: badgePulse 2s ease-in-out infinite;
+    }
+
+    @keyframes badgePulse {
+      0%, 100% { box-shadow: 0 0 15px rgba(6, 182, 212, 0.2); }
+      50% { box-shadow: 0 0 25px rgba(6, 182, 212, 0.4); }
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      background: var(--neon-cyan);
+      border-radius: 50%;
+      animation: pulse 2s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.5; transform: scale(1.2); }
+    }
+
+    /* ========================
+       FORM SECTION
+       ======================== */
+    .form-section {
+      background: rgba(26, 35, 50, 0.7);
+      border: 1px solid rgba(6, 182, 212, 0.3);
+      border-radius: var(--radius-lg);
+      padding: 32px;
+      margin-bottom: 32px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3), inset 0 0 30px rgba(6, 182, 212, 0.05);
+      animation: slideUp 0.6s ease-out 0.1s backwards;
+      backdrop-filter: blur(10px);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .form-section::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      right: -50%;
+      width: 100%;
+      height: 100%;
+      background: radial-gradient(circle, rgba(168, 85, 247, 0.1) 0%, transparent 70%);
+      animation: floatGlow 8s ease-in-out infinite;
+    }
+
+    @keyframes floatGlow {
+      0%, 100% { transform: translate(0, 0); }
+      50% { transform: translate(20px, -20px); }
+    }
+
+    .form-title {
+      font-size: 20px;
+      font-weight: 700;
+      margin-bottom: 24px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      position: relative;
+      z-index: 1;
+      color: var(--neon-cyan);
+    }
+
+    .form-title::before {
+      content: '✈️';
+      font-size: 24px;
+      animation: floatIcon 3s ease-in-out infinite;
+    }
+
+    @keyframes floatIcon {
+      0%, 100% { transform: translateY(0px); }
+      50% { transform: translateY(-8px); }
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 20px;
+      margin-bottom: 24px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .form-label {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    input, select, textarea {
+      padding: 12px 16px;
+      background: rgba(15, 23, 42, 0.8);
+      border: 1px solid rgba(6, 182, 212, 0.3);
+      border-radius: 12px;
+      color: var(--text-primary);
+      font-size: 14px;
+      font-family: inherit;
+      transition: all 0.3s ease;
+      position: relative;
+    }
+
+    input:focus, select:focus, textarea:focus {
+      outline: none;
+      border-color: var(--neon-cyan);
+      background: rgba(15, 23, 42, 0.95);
+      box-shadow: 0 0 0 3px rgba(6, 182, 212, 0.2), 0 0 15px rgba(6, 182, 212, 0.3);
+    }
+
+    textarea {
+      resize: vertical;
+      min-height: 100px;
+    }
+
+    .form-actions {
+      display: flex;
+      gap: 16px;
+      align-items: center;
+      flex-wrap: wrap;
+      margin-top: 28px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .btn {
+      padding: 12px 28px;
+      border: none;
+      border-radius: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      font-size: 14px;
+      transition: all 0.3s ease;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      white-space: nowrap;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .btn::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+      transition: left 0.5s ease;
+    }
+
+    .btn:hover::before {
+      left: 100%;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--neon-cyan), var(--neon-purple));
+      color: var(--primary-dark);
+      box-shadow: 0 8px 24px rgba(6, 182, 212, 0.4), 0 0 20px rgba(168, 85, 247, 0.2);
+    }
+
+    .btn-primary:hover:not(:disabled) {
+      transform: translateY(-3px);
+      box-shadow: 0 12px 32px rgba(6, 182, 212, 0.5), 0 0 30px rgba(168, 85, 247, 0.3);
+    }
+
+    .btn-primary:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    .btn-secondary {
+      background: rgba(6, 182, 212, 0.1);
+      color: var(--neon-cyan);
+      border: 1px solid var(--neon-cyan);
+    }
+
+    .btn-secondary:hover {
+      background: rgba(6, 182, 212, 0.2);
+      box-shadow: 0 0 15px rgba(6, 182, 212, 0.3);
+    }
+
+    .spinner {
+      width: 16px;
+      height: 16px;
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      border-top-color: var(--primary-white);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .form-hint {
+      font-size: 12px;
+      color: var(--text-secondary);
+      margin-top: 8px;
+    }
+
+    /* ========================
+       RESULTS SECTION
+       ======================== */
+
+    .results-section {
+      display: none;
+      animation: slideUp 0.6s ease-out;
+    }
+
+    .results-section.show {
+      display: block;
+    }
+
+    .results-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 24px;
+      margin-bottom: 32px;
+    }
+
+    .result-card {
+      background: rgba(26, 35, 50, 0.7);
+      border: 1px solid rgba(6, 182, 212, 0.3);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3), inset 0 0 20px rgba(6, 182, 212, 0.05);
+      backdrop-filter: blur(10px);
+      transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+      animation: cardSlideUp 0.6s ease-out backwards;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .result-card::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      right: -50%;
+      width: 100%;
+      height: 100%;
+      background: radial-gradient(circle, rgba(6, 182, 212, 0.1) 0%, transparent 70%);
+      opacity: 0;
+      transition: opacity 0.4s ease;
+    }
+
+    .result-card:hover::before {
+      opacity: 1;
+    }
+
+    .result-card:hover {
+      transform: translateY(-8px) scale(1.01);
+      border-color: var(--neon-cyan);
+      box-shadow: 0 24px 72px rgba(6, 182, 212, 0.3), inset 0 0 30px rgba(6, 182, 212, 0.1);
+    }
+
+    .result-card:nth-child(1) { animation-delay: 0s; }
+    .result-card:nth-child(2) { animation-delay: 0.1s; }
+    .result-card:nth-child(3) { animation-delay: 0.2s; }
+    .result-card:nth-child(4) { animation-delay: 0.3s; }
+    .result-card:nth-child(5) { animation-delay: 0.4s; }
+    .result-card:nth-child(6) { animation-delay: 0.5s; }
+
+    @keyframes cardSlideUp {
+      0% { transform: translateY(30px); opacity: 0; }
+      100% { transform: translateY(0); opacity: 1; }
+    }
+
+    @keyframes slideUp {
+      0% { transform: translateY(20px); opacity: 0; }
+      100% { transform: translateY(0); opacity: 1; }
+    }
+
+    @keyframes slideDown {
+      0% { transform: translateY(-20px); opacity: 0; }
+      100% { transform: translateY(0); opacity: 1; }
+    }
+
+    .result-card-title {
+      font-size: 18px;
+      font-weight: 700;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--neon-cyan);
+      position: relative;
+      z-index: 1;
+    }
+
+    .metric-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 12px;
+      margin-bottom: 16px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .metric {
+      background: rgba(6, 182, 212, 0.08);
+      border: 1px solid rgba(6, 182, 212, 0.3);
+      border-radius: 12px;
+      padding: 12px;
+      text-align: center;
+      transition: all 0.3s ease;
+    }
+
+    .metric:hover {
+      transform: translateY(-3px);
+      background: rgba(6, 182, 212, 0.15);
+      box-shadow: 0 5px 15px rgba(6, 182, 212, 0.2);
+    }
+
+    .metric-label {
+      font-size: 11px;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 6px;
+    }
+
+    .metric-value {
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--neon-cyan);
+    }
+
+    .divider {
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(6, 182, 212, 0.3), transparent);
+      margin: 16px 0;
+    }
+
+    .text-content {
+      font-size: 14px;
+      line-height: 1.6;
+      color: var(--text-secondary);
+      position: relative;
+      z-index: 1;
+    }
+
+    .text-content strong {
+      color: var(--text-primary);
+    }
+
+    .list-items {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .list-items li {
+      padding: 8px 12px;
+      background: rgba(6, 182, 212, 0.08);
+      border-left: 3px solid var(--neon-cyan);
+      border-radius: 4px;
+      font-size: 13px;
+      color: var(--text-secondary);
+      transition: all 0.3s ease;
+    }
+
+    .list-items li:hover {
+      background: rgba(6, 182, 212, 0.15);
+      border-left-color: var(--neon-purple);
+      transform: translateX(5px);
+    }
+
+    .table-wrapper {
+      overflow-x: auto;
+      margin: 16px 0;
+      position: relative;
+      z-index: 1;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+
+    th {
+      background: rgba(6, 182, 212, 0.15);
+      color: var(--neon-cyan);
+      padding: 12px;
+      text-align: left;
+      font-weight: 600;
+      border-bottom: 1px solid rgba(6, 182, 212, 0.3);
+    }
+
+    td {
+      padding: 10px 12px;
+      border-bottom: 1px solid rgba(6, 182, 212, 0.2);
+      color: var(--text-secondary);
+    }
+
+    tr:hover {
+      background: rgba(6, 182, 212, 0.05);
+    }
+
+    .itinerary-day {
+      background: rgba(6, 182, 212, 0.08);
+      border-left: 4px solid var(--neon-cyan);
+      border-radius: 8px;
+      padding: 16px;
+      margin-bottom: 12px;
+      transition: all 0.3s ease;
+    }
+
+    .itinerary-day:hover {
+      transform: translateX(8px);
+      border-left-color: var(--neon-purple);
+      box-shadow: 4px 4px 15px rgba(6, 182, 212, 0.15);
+      background: rgba(6, 182, 212, 0.12);
+    }
+
+    .day-date {
+      font-weight: 700;
+      color: var(--neon-cyan);
+      font-size: 12px;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+
+    .day-activity {
+      font-size: 13px;
+      color: var(--text-secondary);
+      margin-bottom: 6px;
+      padding-left: 16px;
+      position: relative;
+    }
+
+    .day-activity::before {
+      content: '→';
+      position: absolute;
+      left: 0;
+      color: var(--neon-cyan);
+      font-weight: 700;
+    }
+
+    .day-cost {
+      margin-top: 8px;
+      padding-top: 8px;
+      border-top: 1px solid rgba(6, 182, 212, 0.2);
+      font-size: 12px;
+      color: var(--neon-cyan);
+      font-weight: 600;
+    }
+
+    .day-narrative {
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 1px solid rgba(6, 182, 212, 0.2);
+      font-size: 13px;
+      color: var(--text-secondary);
+      font-style: italic;
+    }
+
+    /* ========================
+       FOOTER / CREDITS
+       ======================== */
+    .credits-footer {
+      margin-top: 60px;
+      padding-top: 40px;
+      border-top: 1px solid rgba(6, 182, 212, 0.2);
+      text-align: center;
+      font-size: 12px;
+      color: var(--text-secondary);
+      animation: slideUp 0.8s ease-out 0.5s backwards;
+    }
+
+    .credits-footer a {
+      color: var(--neon-cyan);
+      text-decoration: none;
+      transition: all 0.3s ease;
+      font-weight: 600;
+    }
+
+    .credits-footer a:hover {
+      color: var(--neon-purple);
+      text-decoration: underline;
+    }
+
+    .credits-info {
+      margin-top: 12px;
+      font-size: 11px;
+      color: rgba(203, 213, 225, 0.7);
+    }
+
+    /* ========================
+       RESPONSIVE
+       ======================== */
+    @media (max-width: 768px) {
+      .container {
+        padding: 20px 16px;
+      }
+
+      header {
+        flex-direction: column;
+        align-items: flex-start;
+        margin-bottom: 24px;
+      }
+
+      .form-section {
+        padding: 20px;
+      }
+
+      .form-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .results-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .title {
+        font-size: 24px;
+      }
+
+      .itinerary-day:hover {
+        transform: translateX(4px);
+      }
+    }
+
+    /* ======= PRINT THEME (uso no PDF) ======= */
+    .print-sheet {
+      width: 800px;
+      background: #ffffff;
+      color: #111827;
+      font-family: Arial, Helvetica, sans-serif;
+      padding: 24px;
+    }
+
+    .print-sheet h1, .print-sheet h2, .print-sheet h3 {
+      color: #0f172a;
+    }
+
+    .print-sheet .result-card,
+    .print-sheet .form-section,
+    .print-sheet .table-wrapper,
+    .print-sheet table {
+      background: #ffffff !important;
+      border-color: #e5e7eb !important;
+      box-shadow: none !important;
+    }
+
+    .print-sheet .result-card-title { color: #0ea5e9 !important; }
+    .print-sheet .metric-value { color: #10b981 !important; }
+    .print-sheet .itinerary-day {
+      background: #fafafa !important;
+      border-left: 4px solid #10b981 !important;
+      box-shadow: none !important;
+      transform: none !important;
+    }
+
+    .print-sheet * {
+      animation: none !important;
+      transition: none !important;
+      text-shadow: none !important;
+      filter: none !important;
+    }
+
+    .print-sheet table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    .print-sheet th, .print-sheet td {
+      border: 1px solid #e5e7eb; padding: 8px; color: #111827;
+    }
+    .print-sheet th { background: #f3f4f6; color: #0f172a; }
+    .print-sheet .itinerary-day { page-break-inside: avoid; }
+    .print-sheet h2, .print-sheet h3, .print-section { page-break-after: avoid; }
+  </style>
+</head>
+<body>
+  <!-- SPLASH SCREEN -->
+  <div class="splash-screen" id="splashScreen">
+    <div class="splash-content">
+      <div class="splash-logo">
+        <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <linearGradient id="globeGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" style="stop-color:#06b6d4;stop-opacity:1" />
+              <stop offset="100%" style="stop-color:#a855f7;stop-opacity:1" />
+            </linearGradient>
+          </defs>
+          <!-- Globe -->
+          <circle cx="100" cy="100" r="70" fill="url(#globeGradient)" stroke="#ffffff" stroke-width="3"/>
+          <!-- Globe grid -->
+          <circle cx="100" cy="100" r="70" fill="none" stroke="#ffffff" stroke-width="1" opacity="0.3"/>
+          <path d="M 100 30 Q 100 100 100 170" stroke="#ffffff" stroke-width="1" opacity="0.3"/>
+          <ellipse cx="100" cy="100" rx="70" ry="30" fill="none" stroke="#ffffff" stroke-width="1" opacity="0.3"/>
+          <!-- Airplane -->
+          <g transform="translate(130, 70)">
+            <path d="M 0 0 L 15 -8 L 15 8 Z" fill="#ffffff"/>
+            <rect x="5" y="-3" width="20" height="6" fill="#ffffff" opacity="0.7"/>
+          </g>
+        </svg>
+      </div>
+      <h1 class="splash-title">IViagem</h1>
+      <p class="splash-subtitle">Smart Travel Planner</p>
+    </div>
+  </div>
+
+  <!-- MAIN CONTENT -->
+  <div class="container">
+    <!-- HEADER -->
+    <header>
+      <div class="header-left">
+        <div class="logo-small">✈️</div>
+        <h1 class="title">IViagem</h1>
+      </div>
+      <div class="header-right">
+        <div class="status-badge">
+          <span class="status-dot"></span>
+          API Conectada
+        </div>
+      </div>
+    </header>
+
+    <!-- FORM SECTION -->
+    <section class="form-section">
+      <h2 class="form-title">Planeje sua Viagem</h2>
+      <form id="travelForm">
+        <div class="form-grid">
+          <div class="form-group">
+            <label class="form-label">Cidade de Origem</label>
+            <input type="text" id="fromCity" name="fromCity" placeholder="São Paulo" value="São Paulo" required />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Cidade de Destino</label>
+            <input type="text" id="toCity" name="toCity" placeholder="Manaus" value="Manaus" required />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Data de Partida</label>
+            <input type="date" id="dateFrom" name="dateFrom" required />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Data de Retorno</label>
+            <input type="date" id="dateTo" name="dateTo" required />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Número de Viajantes</label>
+            <input type="number" id="travelers" name="travelers" min="1" value="1" required />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Perfil de Viagem</label>
+            <select id="profile" name="profile" required>
+              <option value="econômico">Econômico</option>
+              <option value="equilibrado" selected>Equilibrado</option>
+              <option value="premium">Premium</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Interesses e Preferências</label>
+          <textarea id="interests" name="interests" placeholder="Ex: cultura, gastronomia, natureza, aventura...">cultura, gastronomia</textarea>
+          <p class="form-hint">Separe seus interesses por vírgula para um planejamento mais personalizado</p>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Teto de Orçamento (Opcional)</label>
+          <input type="number" id="budget" name="budget" min="0" step="0.01" placeholder="Ex: 5000" />
+          <p class="form-hint">Deixe em branco para sem limite de orçamento</p>
+        </div>
+
+        <div class="form-actions">
+          <button type="submit" class="btn btn-primary" id="submitBtn">
+            <span class="spinner" id="spinner" style="display: none;"></span>
+            <span id="btnLabel">Gerar Roteiro Inteligente</span>
+          </button>
+          <button type="button" class="btn btn-secondary" id="exportPdfBtn">
+            Exportar PDF
+          </button>
+          <button type="button" class="btn btn-secondary" id="testApiBtn">
+            Testar API
+          </button>
+        </div>
+      </form>
+    </section>
+
+    <!-- RESULTS SECTION -->
+    <section class="results-section" id="resultsSection">
+      <!-- Summary Card -->
+      <div class="results-grid">
+        <div class="result-card">
+          <h3 class="result-card-title">📊 Resumo Executivo</h3>
+          <div class="metric-grid">
+            <div class="metric">
+              <div class="metric-label">Orçamento Total</div>
+              <div class="metric-value" id="totalBudget">R$ 0</div>
+            </div>
+            <div class="metric">
+              <div class="metric-label">Duração</div>
+              <div class="metric-value" id="tripDuration">0 dias</div>
+            </div>
+            <div class="metric">
+              <div class="metric-label">Risco Climático</div>
+              <div class="metric-value" id="climateRisk" style="font-size: 14px;">—</div>
+            </div>
+          </div>
+          <div class="divider"></div>
+          <div class="text-content" id="generalObservations"></div>
+        </div>
+
+        <!-- Logistics Card -->
+        <div class="result-card">
+          <h3 class="result-card-title">🚀 Logística</h3>
+          <div class="table-wrapper">
+            <table id="legsTable"></table>
+          </div>
+          <div class="divider"></div>
+          <div class="metric-grid">
+            <div class="metric">
+              <div class="metric-label">Tempo Total</div>
+              <div class="metric-value" id="totalTime">—</div>
+            </div>
+            <div class="metric">
+              <div class="metric-label">Distância</div>
+              <div class="metric-value" id="totalDistance">—</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Budget Card -->
+        <div class="result-card">
+          <h3 class="result-card-title">💰 Orçamento Detalhado</h3>
+          <div class="table-wrapper">
+            <table id="costsTable"></table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Itinerary Card (Full Width) -->
+      <div class="result-card">
+        <h3 class="result-card-title">📅 Itinerário Dia a Dia</h3>
+        <div id="itineraryContainer"></div>
+      </div>
+
+      <!-- Suggestions Card (if any) -->
+      <div class="result-card" id="suggestionsCard" style="display: none;">
+        <h3 class="result-card-title">💡 Sugestões Personalizadas</h3>
+        <ul class="list-items" id="suggestionsList"></ul>
+      </div>
+
+      <!-- Adjustments Card (if any) -->
+      <div class="result-card" id="adjustmentsCard" style="display: none;">
+        <h3 class="result-card-title">⚙️ Ajustes Aplicados</h3>
+        <ul class="list-items" id="adjustmentsList"></ul>
+      </div>
+
+      <!-- Debug JSON (Hidden by default) -->
+      <div class="result-card" style="display: none;">
+        <h3 class="result-card-title">🔧 JSON (Debug)</h3>
+        <pre class="text-content" id="jsonDebug" style="overflow-x: auto; background: rgba(0,0,0,0.2); padding: 12px; border-radius: 8px; font-size: 11px;"></pre>
+      </div>
+    </section>
+
+    <!-- CREDITS FOOTER -->
+    <footer class="credits-footer">
+      <div>
+        <strong>IViagem – Planejador de Viagens Inteligente</strong>
+        <p class="credits-info">
+          Desenvolvido por <strong>Vinicius de Souza Santos</strong><br>
+          Mestrando em Ciências da Computação com ênfase em Ciência de Dados e IA<br>
+          <a href="mailto:vinicius-souza.santos@unesp.br">vinicius-souza.santos@unesp.br</a> | 
+          <a href="https://viniciuskanh.github.io/portfolio/" target="_blank">Portfolio</a>
+        </p>
+      </div>
+    </footer>
+  </div>
+
+  <script>
+    // ========================
+    // UTILITY FUNCTIONS
+    // ========================
+    const $ = (sel) => document.querySelector(sel);
+    const $$ = (sel) => Array.from(document.querySelectorAll(sel));
+    const stripEmoji = (s) => s.replace(/[\p{Emoji_Presentation}\p{Emoji}\uFE0F]/gu, "").trim();
+
+    async function addTTF(doc, name, style, url) {
+      try {
+        const rsp = await fetch(url, { cache: "force-cache" });
+        if (!rsp.ok) throw new Error("Font fetch failed");
+        const buf = await rsp.arrayBuffer();
+        const bin = new Uint8Array(buf);
+        let b64 = "";
+        for (let i = 0; i < bin.length; i++) b64 += String.fromCharCode(bin[i]);
+        doc.addFileToVFS(`${name}-${style}.ttf`, btoa(b64));
+        doc.addFont(`${name}-${style}.ttf`, name, style);
+        console.log(`✅ Fonte ${name}-${style} carregada`);
+        return true;
+      } catch (err) {
+        console.warn(`⚠️ Falha ao carregar fonte ${name}:`, err);
+        return false;
+      }
+    }
+
+    async function ensureFont(doc) {
+      const ok1 = await addTTF(
+        doc,
+        "Roboto",
+        "normal",
+        "https://cdn.jsdelivr.net/npm/@fontsource/roboto/files/roboto-latin-400-normal.ttf"
+      );
+      const ok2 = await addTTF(
+        doc,
+        "Roboto",
+        "bold",
+        "https://cdn.jsdelivr.net/npm/@fontsource/roboto/files/roboto-latin-700-normal.ttf"
+      );
+      if (ok1 && ok2) {
+        doc.setFont("Roboto", "normal");
+      } else {
+        doc.setFont("helvetica", "normal");
+        console.warn("⚙️ Usando Helvetica (fallback)");
+      }
+    }
+
+    function formatCurrency(value) {
+      return new Intl.NumberFormat('pt-BR', {
+        style: 'currency',
+        currency: 'BRL'
+      }).format(value);
+    }
+
+    function formatDate(dateStr) {
+      const date = new Date(dateStr + 'T00:00:00');
+      return date.toLocaleDateString('pt-BR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+    }
+
+    // ========================
+    // INITIALIZATION
+    // ========================
+    function initializeDates() {
+      const today = new Date();
+      const plus7 = new Date(today);
+      plus7.setDate(plus7.getDate() + 7);
+
+      $('#dateFrom').valueAsDate = today;
+      $('#dateTo').valueAsDate = plus7;
+    }
+
+    // ===== CONFIG API BASE =====
+    const params = new URLSearchParams(location.search);
+    const DEFAULT_API = "https://viniciuskhan-backend-iviagem.hf.space";
+    const API_BASE = (params.get("api")
+      || localStorage.getItem("iviagem-api")
+      || DEFAULT_API).replace(/\/+$/,"");
+
+    localStorage.setItem("iviagem-api", API_BASE);
+    const api = (path) => `${API_BASE}${path.startsWith("/") ? path : "/"+path}`;
+
+    console.log("IViagem API_BASE =", API_BASE);
+    const statusBadge = () => {
+      const el = document.querySelector(".status-badge");
+      if (!el) return;
+      el.title = `API: ${API_BASE}`;
+    };
+    document.addEventListener("DOMContentLoaded", statusBadge);
+
+    // ========================
+    // API INTERACTION
+    // ========================
+    async function testAPI() {
+      const apiUrl = api('/health');
+      try {
+        const response = await fetch(apiUrl, { method: 'GET', mode: 'cors' });
+        if (response.ok) {
+          alert('✅ API conectada com sucesso!');
+        } else {
+          alert(`❌ Erro ao conectar com a API (${API_BASE}). Status: ${response.status}`);
+        }
+      } catch (error) {
+        alert(`❌ Erro de rede ao conectar com a API (${API_BASE}): ${error.message}`);
+      }
+    }
+
+    async function generateTravelPlan(formData) {
+      const apiUrl = api('/plan');
+      try {
+        const response = await fetch(apiUrl, {
+          method: 'POST',
+          mode: 'cors',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(formData),
+        });
+
+        if (!response.ok) {
+          let msg = `Erro ao gerar roteiro (HTTP ${response.status})`;
+          try {
+            const errorData = await response.json();
+            if (errorData?.detail) msg = errorData.detail;
+          } catch {}
+          throw new Error(msg);
+        }
+        return await response.json();
+      } catch (error) {
+        console.error('Erro na API:', API_BASE, error);
+        alert(`Erro ao gerar roteiro via ${API_BASE}: ${error.message}`);
+        return null;
+      }
+    }
+
+    // ========================
+    // UI RENDERING
+    // ========================
+    function renderResults(data) {
+      if (!data) {
+        $('#resultsSection').classList.remove('show');
+        return;
+      }
+
+      // Summary
+      $('#totalBudget').textContent = formatCurrency(data.orcamento_estimado_total || 0);
+      const durationDays = Array.isArray(data.roteiro) ? data.roteiro.length : 0;
+      $('#tripDuration').textContent = `${durationDays} dias`;
+      $('#climateRisk').textContent = data.risco_climatico || '—';
+      $('#generalObservations').innerHTML = data.observacoes_gerais
+        ? `<p>${data.observacoes_gerais}</p>`
+        : '';
+
+      // Logistics
+      const legs = Array.isArray(data.legs) ? data.legs : [];
+      const legsTableBody = `
+        <thead>
+          <tr>
+            <th>Origem</th>
+            <th>Destino</th>
+            <th>Transporte</th>
+            <th>Duração</th>
+            <th>Distância</th>
+            <th>Custo</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${legs.map(leg => `
+            <tr>
+              <td>${leg.origem}</td>
+              <td>${leg.destino}</td>
+              <td>${leg.modo}</td>
+              <td>${(leg.duracao_h ?? 0).toFixed(1)} h</td>
+              <td>${(leg.distancia_km ?? 0).toFixed(0)} km</td>
+              <td>${formatCurrency(leg.preco_estimado ?? 0)}</td>
+            </tr>
+          `).join('')}
+        </tbody>`;
+      $('#legsTable').innerHTML = legsTableBody;
+
+      // Totais logísticos
+      const totalTimeH = legs.reduce((acc, l) => acc + (l.duracao_h || 0), 0);
+      const totalDistKm = legs.reduce((acc, l) => acc + (l.distancia_km || 0), 0);
+      $('#totalTime').textContent = data.tempo_voo_total || `${totalTimeH.toFixed(1)} h`;
+      $('#totalDistance').textContent = `${totalDistKm.toFixed(0)} km`;
+
+      // Budget table
+      const items = Array.isArray(data.custos_itens) ? data.custos_itens : [];
+      const costsTableBody = `
+        <thead>
+          <tr>
+            <th>Categoria</th>
+            <th>Descrição</th>
+            <th>Qtd</th>
+            <th>Unitário</th>
+            <th>Total</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${items.map(it => `
+            <tr>
+              <td>${it.categoria}</td>
+              <td>${it.descricao}</td>
+              <td>${it.quantidade}</td>
+              <td>${formatCurrency(it.preco_unitario || 0)}</td>
+              <td><strong>${formatCurrency(it.custo_total || 0)}</strong></td>
+            </tr>
+          `).join('')}
+        </tbody>`;
+      $('#costsTable').innerHTML = costsTableBody;
+
+      // Itinerary
+      const itinerary = Array.isArray(data.roteiro) ? data.roteiro : [];
+      const itineraryHtml = itinerary.map(day => `
+        <div class="itinerary-day">
+          <div class="day-date">${formatDate(day.data)}</div>
+          <p class="day-activity"><strong>Manhã:</strong> ${day.manha || '—'}</p>
+          <p class="day-activity"><strong>Tarde:</strong> ${day.tarde || '—'}</p>
+          <p class="day-activity"><strong>Noite:</strong> ${day.noite || '—'}</p>
+          ${day.custo_dia ? `<div class="day-cost">Custo do dia: ${formatCurrency(day.custo_dia)}</div>` : ''}
+          ${day.narrativa ? `<div class="day-narrative">"${day.narrativa}"</div>` : ''}
+        </div>
+      `).join('');
+      $('#itineraryContainer').innerHTML = itineraryHtml || '<p>Nenhum itinerário disponível</p>';
+
+      // Suggestions
+      if (data.sugestoes_personalizadas && data.sugestoes_personalizadas.length > 0) {
+        $('#suggestionsCard').style.display = 'block';
+        $('#suggestionsList').innerHTML = data.sugestoes_personalizadas
+          .map(s => `<li>${s}</li>`)
+          .join('');
+      }
+
+      // Adjustments
+      if (data.ajustes_aplicados && data.ajustes_aplicados.length > 0) {
+        $('#adjustmentsCard').style.display = 'block';
+        $('#adjustmentsList').innerHTML = data.ajustes_aplicados
+          .map(a => `<li>${a}</li>`)
+          .join('');
+      }
+
+      $('#resultsSection').classList.add('show');
+    }
+
+    // ========================
+    // FORM SUBMISSION
+    // ========================
+    $('#travelForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+    const formData = {
+      cidade_origem: $('#fromCity').value.trim(),
+      destino: $('#toCity').value.trim(),          // <- era cidade_destino
+      data_inicio: $('#dateFrom').value,           // <- era data_partida
+      data_fim: $('#dateTo').value,                // <- era data_retorno
+      numero_viajantes: parseInt($('#travelers').value, 10),
+      perfil: $('#profile').value,                 // <- era perfil_viagem
+      temas: $('#interests').value
+        .split(',')
+        .map(s => s.trim())
+        .filter(Boolean),                          // <- array, não string
+      teto_orcamento: $('#budget').value ? parseFloat($('#budget').value) : 0,
+      moeda: 'BRL'
+    };
+
+      $('#submitBtn').disabled = true;
+      $('#spinner').style.display = 'inline-block';
+      $('#btnLabel').textContent = 'Gerando...';
+
+      const result = await generateTravelPlan(formData);
+
+      $('#submitBtn').disabled = false;
+      $('#spinner').style.display = 'none';
+      $('#btnLabel').textContent = 'Gerar Roteiro Inteligente';
+
+      if (result) {
+        renderResults(result);
+      }
+    });
+
+    // ========================
+    // PDF EXPORT
+    // ========================
+    $('#exportPdfBtn').addEventListener('click', async () => {
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF();
+
+      await ensureFont(doc);
+
+      const element = $('#resultsSection');
+      if (!element || !element.classList.contains('show')) {
+        alert('Por favor, gere um roteiro primeiro!');
+        return;
+      }
+
+      try {
+        const canvas = await html2canvas(element, {
+          scale: 2,
+          useCORS: true,
+          logging: false,
+          backgroundColor: '#ffffff',
+        });
+
+        const imgData = canvas.toDataURL('image/png');
+        const imgWidth = 190;
+        const imgHeight = (canvas.height * imgWidth) / canvas.width;
+
+        let heightLeft = imgHeight;
+        let position = 0;
+
+        doc.addPage();
+        doc.addImage(imgData, 'PNG', 10, position, imgWidth, imgHeight);
+        heightLeft -= doc.internal.pageSize.getHeight();
+
+        while (heightLeft >= 0) {
+          position = heightLeft - imgHeight;
+          doc.addPage();
+          doc.addImage(imgData, 'PNG', 10, position, imgWidth, imgHeight);
+          heightLeft -= doc.internal.pageSize.getHeight();
+        }
+
+        doc.save('roteiro-viagem.pdf');
+      } catch (error) {
+        console.error('Erro ao exportar PDF:', error);
+        alert('Erro ao exportar PDF: ' + error.message);
+      }
+    });
+
+    // ========================
+    // EVENT LISTENERS
+    // ========================
+    $('#testApiBtn').addEventListener('click', testAPI);
+
+    // Initialize on page load
+    document.addEventListener('DOMContentLoaded', () => {
+      initializeDates();
+      statusBadge();
+    });
+  </script>
+</body>
+</html>
+
