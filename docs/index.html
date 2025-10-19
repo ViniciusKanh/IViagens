@@ -1003,6 +1003,10 @@
     const $$ = (sel) => Array.from(document.querySelectorAll(sel));
     const stripEmoji = (s) => s.replace(/[\p{Emoji_Presentation}\p{Emoji}\uFE0F]/gu, "").trim();
 
+    // Variável global para manter os últimos dados retornados pela API.
+    // Isso permite reutilizar as informações ao exportar o PDF sem depender do DOM.
+    let lastResult = null;
+
     async function addTTF(doc, name, style, url) {
       try {
         const rsp = await fetch(url, { cache: "force-cache" });
@@ -1021,26 +1025,231 @@
       }
     }
 
-    async function ensureFont(doc) {
-      const ok1 = await addTTF(
-        doc,
-        "Roboto",
-        "normal",
-        "https://cdn.jsdelivr.net/npm/@fontsource/roboto/files/roboto-latin-400-normal.ttf"
-      );
-      const ok2 = await addTTF(
-        doc,
-        "Roboto",
-        "bold",
-        "https://cdn.jsdelivr.net/npm/@fontsource/roboto/files/roboto-latin-700-normal.ttf"
-      );
-      if (ok1 && ok2) {
-        doc.setFont("Roboto", "normal");
-      } else {
-        doc.setFont("helvetica", "normal");
-        console.warn("⚙️ Usando Helvetica (fallback)");
-      }
-    }
+    
+// Função para garantir que a fonte seja carregada no jsPDF
+async function ensureFont(doc) {
+  // Adicione fontes personalizadas aqui, se necessário
+  // Exemplo: doc.addFont("Roboto-Regular.ttf", "Roboto", "normal");
+  // Para este exemplo, vamos confiar nas fontes padrão ou que o html2canvas as renderize.
+}
+
+// Função para gerar o PDF
+async function generateStyledPdf() {
+  // Esta função gera um PDF estilizado a partir dos dados armazenados em `lastResult`.
+  // Utiliza jsPDF e o plugin autotable para criar tabelas bem formatadas.
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF('p', 'mm', 'a4');
+
+  await ensureFont(doc);
+
+  if (!lastResult) {
+    alert('Por favor, gere um roteiro primeiro!');
+    return;
+  }
+
+  const data = lastResult;
+
+  // Funções auxiliares para formatar texto e obter métricas
+  const legs = Array.isArray(data.legs) ? data.legs : [];
+  const totalTimeH = legs.reduce((acc, l) => acc + (l.duracao_h || 0), 0);
+  const totalDistKm = legs.reduce((acc, l) => acc + (l.distancia_km || 0), 0);
+  const itinerary = Array.isArray(data.roteiro) ? data.roteiro : [];
+  const periodoInicio = itinerary.length > 0 ? itinerary[0].data : '';
+  const periodoFim = itinerary.length > 0 ? itinerary[itinerary.length - 1].data : '';
+
+  let currentY = 15; // Posição inicial em milímetros
+
+  // Cabeçalho principal
+  doc.setFontSize(16);
+  doc.setTextColor(20, 23, 34);
+  let title = 'Roteiro de Viagem';
+  if (legs.length > 0) {
+    const origem = legs[0].origem ? legs[0].origem.split(',')[0] : '';
+    const destino = legs[0].destino ? legs[0].destino.split(',')[0] : '';
+    title = `Roteiro: ${origem} → ${destino}`;
+  }
+  doc.text(title, 105, currentY, { align: 'center' });
+  currentY += 7;
+
+  // Período da viagem
+  if (periodoInicio && periodoFim) {
+    doc.setFontSize(10);
+    doc.setTextColor(80, 80, 80);
+    doc.text(`Período: ${periodoInicio} a ${periodoFim}`, 105, currentY, { align: 'center' });
+    currentY += 8;
+  }
+
+  // Sumário com métricas principais
+  const summaryRows = [
+    ['Orçamento Total', formatCurrency(data.orcamento_estimado_total || 0)],
+    ['Duração (dias)', itinerary.length.toString()],
+    ['Risco Climático', data.risco_climatico || '—'],
+    ['Tempo Total', data.tempo_voo_total || `${totalTimeH.toFixed(1)} h`],
+    ['Distância Total', `${totalDistKm.toFixed(0)} km`]
+  ];
+  doc.autoTable({
+    startY: currentY,
+    head: [['Métrica', 'Valor']],
+    body: summaryRows,
+    theme: 'grid',
+    headStyles: { fillColor: [6, 182, 212], textColor: [255, 255, 255], halign: 'center' },
+    bodyStyles: { halign: 'left', textColor: [20, 23, 34] },
+    margin: { left: 15, right: 15 },
+    styles: { fontSize: 9, cellPadding: 2 },
+  });
+  currentY = doc.lastAutoTable.finalY + 6;
+
+  // Observações gerais
+  if (data.observacoes_gerais) {
+    doc.setFontSize(12);
+    doc.setTextColor(20, 23, 34);
+    doc.text('Observações Gerais', 15, currentY);
+    currentY += 5;
+    doc.setFontSize(9);
+    doc.setTextColor(60, 60, 60);
+    const obsLines = doc.splitTextToSize(data.observacoes_gerais, 180);
+    doc.text(obsLines, 15, currentY);
+    currentY += obsLines.length * 5 + 5;
+  }
+
+  // Tabela de logística (legs)
+  if (legs.length > 0) {
+    doc.setFontSize(12);
+    doc.setTextColor(20, 23, 34);
+    doc.text('Logística', 15, currentY);
+    currentY += 5;
+    const legsBody = legs.map(l => [
+      l.origem || '—',
+      l.destino || '—',
+      l.modo || '—',
+      `${(l.duracao_h ?? 0).toFixed(1)} h`,
+      `${(l.distancia_km ?? 0).toFixed(0)} km`,
+      formatCurrency(l.preco_estimado ?? 0)
+    ]);
+    doc.autoTable({
+      startY: currentY,
+      head: [['Origem', 'Destino', 'Modo', 'Duração', 'Distância', 'Custo']],
+      body: legsBody,
+      theme: 'grid',
+      headStyles: { fillColor: [6, 182, 212], textColor: [255, 255, 255], halign: 'center' },
+      bodyStyles: { fontSize: 8, textColor: [20, 23, 34] },
+      margin: { left: 15, right: 15 },
+      styles: { cellPadding: 1.5, overflow: 'linebreak' },
+    });
+    currentY = doc.lastAutoTable.finalY + 6;
+  }
+
+  // Tabela de custos detalhados
+  const items = Array.isArray(data.custos_itens) ? data.custos_itens : [];
+  if (items.length > 0) {
+    doc.setFontSize(12);
+    doc.setTextColor(20, 23, 34);
+    doc.text('Orçamento Detalhado', 15, currentY);
+    currentY += 5;
+    const costsBody = items.map(it => [
+      it.categoria || '—',
+      it.descricao || '—',
+      (it.quantidade ?? 0).toString(),
+      formatCurrency(it.preco_unitario || 0),
+      formatCurrency(it.custo_total || 0)
+    ]);
+    doc.autoTable({
+      startY: currentY,
+      head: [['Categoria', 'Descrição', 'Qtd', 'Unitário', 'Total']],
+      body: costsBody,
+      theme: 'grid',
+      headStyles: { fillColor: [6, 182, 212], textColor: [255, 255, 255], halign: 'center' },
+      bodyStyles: { fontSize: 8, textColor: [20, 23, 34] },
+      margin: { left: 15, right: 15 },
+      styles: { cellPadding: 1.5, overflow: 'linebreak' },
+    });
+    currentY = doc.lastAutoTable.finalY + 6;
+  }
+
+  // Tabela de itinerário
+  if (itinerary.length > 0) {
+    doc.setFontSize(12);
+    doc.setTextColor(20, 23, 34);
+    doc.text('Itinerário', 15, currentY);
+    currentY += 5;
+    const itineraryBody = itinerary.map(day => [
+      day.data || '—',
+      day.manha || '—',
+      day.tarde || '—',
+      day.noite || '—',
+      day.custo_estimado_dia != null ? formatCurrency(day.custo_estimado_dia) : '—'
+    ]);
+    doc.autoTable({
+      startY: currentY,
+      head: [['Data', 'Manhã', 'Tarde', 'Noite', 'Custo do dia']],
+      body: itineraryBody,
+      theme: 'grid',
+      headStyles: { fillColor: [6, 182, 212], textColor: [255, 255, 255], halign: 'center' },
+      bodyStyles: { fontSize: 7, textColor: [20, 23, 34] },
+      margin: { left: 15, right: 15 },
+      styles: { cellPadding: 1.5, overflow: 'linebreak' },
+    });
+    currentY = doc.lastAutoTable.finalY + 6;
+  }
+
+  // Sugestões personalizadas
+  const sugestoes = data.sugestoes_personalizadas || data.sugestoes || [];
+  if (Array.isArray(sugestoes) && sugestoes.length > 0) {
+    doc.setFontSize(12);
+    doc.setTextColor(20, 23, 34);
+    doc.text('Sugestões', 15, currentY);
+    currentY += 5;
+    doc.setFontSize(9);
+    doc.setTextColor(60, 60, 60);
+    sugestoes.forEach((sug, idx) => {
+      const y = currentY + idx * 5;
+      doc.text(`• ${sug}`, 15, y);
+    });
+    currentY += sugestoes.length * 5 + 6;
+  }
+
+  // Ajustes aplicados
+  const ajustes = Array.isArray(data.ajustes_aplicados) ? data.ajustes_aplicados : [];
+  if (ajustes.length > 0) {
+    doc.setFontSize(12);
+    doc.setTextColor(20, 23, 34);
+    doc.text('Ajustes Aplicados', 15, currentY);
+    currentY += 5;
+    doc.setFontSize(9);
+    doc.setTextColor(60, 60, 60);
+    ajustes.forEach((aj, idx) => {
+      const y = currentY + idx * 5;
+      doc.text(`• ${aj}`, 15, y);
+    });
+    currentY += ajustes.length * 5 + 6;
+  }
+
+  // Rodapé com data de geração
+  const now = new Date();
+  const generatedAt = now.toLocaleString('pt-BR');
+  doc.setFontSize(7);
+  doc.setTextColor(120, 120, 120);
+  doc.text(`Gerado em: ${generatedAt}`, 15, 287);
+
+  doc.save('roteiro-viagem.pdf');
+}
+
+// Substituir o event listener existente para usar a nova função
+document.addEventListener('DOMContentLoaded', () => {
+  const exportBtn = document.querySelector('#exportPdfBtn');
+  if (exportBtn) {
+    exportBtn.removeEventListener('click', async () => {
+      // Lógica antiga (será removida)
+    });
+    exportBtn.addEventListener('click', generateStyledPdf);
+  }
+});
+
+// Para garantir que o script seja executado após o carregamento do DOM
+// e para que a função seja globalmente acessível se o script for carregado dinamicamente
+window.generateStyledPdf = generateStyledPdf;
+
+
 
     function formatCurrency(value) {
       return new Intl.NumberFormat('pt-BR', {
@@ -1136,6 +1345,9 @@
         return;
       }
 
+      // Armazena o resultado atual para geração de PDF posteriormente
+      lastResult = data;
+
       // Summary
       $('#totalBudget').textContent = formatCurrency(data.orcamento_estimado_total || 0);
       const durationDays = Array.isArray(data.roteiro) ? data.roteiro.length : 0;
@@ -1211,18 +1423,23 @@
           <p class="day-activity"><strong>Manhã:</strong> ${day.manha || '—'}</p>
           <p class="day-activity"><strong>Tarde:</strong> ${day.tarde || '—'}</p>
           <p class="day-activity"><strong>Noite:</strong> ${day.noite || '—'}</p>
-          ${day.custo_dia ? `<div class="day-cost">Custo do dia: ${formatCurrency(day.custo_dia)}</div>` : ''}
+          ${day.custo_estimado_dia ? `<div class="day-cost">Custo do dia: ${formatCurrency(day.custo_estimado_dia)}</div>` : ''}
           ${day.narrativa ? `<div class="day-narrative">"${day.narrativa}"</div>` : ''}
         </div>
       `).join('');
       $('#itineraryContainer').innerHTML = itineraryHtml || '<p>Nenhum itinerário disponível</p>';
 
-      // Suggestions
-      if (data.sugestoes_personalizadas && data.sugestoes_personalizadas.length > 0) {
+      // Sugestões personalizadas ou genéricas
+      const suggestionsArr = (data.sugestoes_personalizadas && data.sugestoes_personalizadas.length > 0)
+        ? data.sugestoes_personalizadas
+        : (Array.isArray(data.sugestoes) ? data.sugestoes : []);
+      if (suggestionsArr.length > 0) {
         $('#suggestionsCard').style.display = 'block';
-        $('#suggestionsList').innerHTML = data.sugestoes_personalizadas
+        $('#suggestionsList').innerHTML = suggestionsArr
           .map(s => `<li>${s}</li>`)
           .join('');
+      } else {
+        $('#suggestionsCard').style.display = 'none';
       }
 
       // Adjustments
@@ -1275,49 +1492,9 @@
     // ========================
     // PDF EXPORT
     // ========================
+    // Ao clicar em Exportar PDF, gerar o documento formatado a partir dos dados atuais.
     $('#exportPdfBtn').addEventListener('click', async () => {
-      const { jsPDF } = window.jspdf;
-      const doc = new jsPDF();
-
-      await ensureFont(doc);
-
-      const element = $('#resultsSection');
-      if (!element || !element.classList.contains('show')) {
-        alert('Por favor, gere um roteiro primeiro!');
-        return;
-      }
-
-      try {
-        const canvas = await html2canvas(element, {
-          scale: 2,
-          useCORS: true,
-          logging: false,
-          backgroundColor: '#ffffff',
-        });
-
-        const imgData = canvas.toDataURL('image/png');
-        const imgWidth = 190;
-        const imgHeight = (canvas.height * imgWidth) / canvas.width;
-
-        let heightLeft = imgHeight;
-        let position = 0;
-
-        doc.addPage();
-        doc.addImage(imgData, 'PNG', 10, position, imgWidth, imgHeight);
-        heightLeft -= doc.internal.pageSize.getHeight();
-
-        while (heightLeft >= 0) {
-          position = heightLeft - imgHeight;
-          doc.addPage();
-          doc.addImage(imgData, 'PNG', 10, position, imgWidth, imgHeight);
-          heightLeft -= doc.internal.pageSize.getHeight();
-        }
-
-        doc.save('roteiro-viagem.pdf');
-      } catch (error) {
-        console.error('Erro ao exportar PDF:', error);
-        alert('Erro ao exportar PDF: ' + error.message);
-      }
+      await generateStyledPdf();
     });
 
     // ========================
